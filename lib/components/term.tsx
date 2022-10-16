@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import { Terminal, ITerminalOptions, IDisposable } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -7,7 +6,7 @@ import { SearchAddon } from 'xterm-addon-search';
 import { WebglAddon } from 'xterm-addon-webgl';
 import { LigaturesAddon } from 'xterm-addon-ligatures';
 import { Unicode11Addon } from 'xterm-addon-unicode11';
-import { clipboard, shell } from 'electron';
+import { clipboard /*, shell */ } from 'electron';
 import Color from 'color';
 import terms from '../terms';
 import processClipboard from '../utils/paste';
@@ -96,50 +95,30 @@ export interface IWebViewProps {
 }
 
 export class WebView extends React.PureComponent<IWebViewProps> {
-  private element: HTMLDivElement;
-
+  webviewRef: React.RefObject<Electron.WebviewTag>;
   constructor(props: IWebViewProps) {
     super(props);
-    this.element = document.createElement('div');
+    this.webviewRef = React.createRef();
   }
 
-  public componentDidMount(): void {
-    const container = ReactDOM.findDOMNode(this.element) as Element;
-    if (container) {
-      container.innerHTML = `<webview class="${this.props.className}" style="
-        background: #fff;
-        display: inline-flex;
-        width: 100%;
-        height: 100%;
-      " ${this.props.src ? `src=${this.props.src}` : ''} />`;
-    }
-  }
-
-  public goBack = () => {
-    const container = ReactDOM.findDOMNode(this.element) as Element;
-    const webview = container.querySelector('webview') as Electron.WebviewTag;
-    console.log(webview);
-    if (webview.canGoBack()) webview.goBack();
+  public goBack = (w: Electron.WebviewTag | null) => {
+    console.log(w);
+    if (w && w.canGoBack()) w.goBack();
   };
 
-  public goForward = () => {
-    const container = ReactDOM.findDOMNode(this.element) as Element;
-    const webview = container.querySelector('webview') as Electron.WebviewTag;
-    if (webview.canGoForward()) webview.goForward();
+  public goForward = (w: Electron.WebviewTag | null) => {
+    if (w && w.canGoForward()) w.goForward();
   };
 
-  public reload = () => {
-    const container = ReactDOM.findDOMNode(this.element) as Element;
-    const webview = container.querySelector('webview') as Electron.WebviewTag;
-    console.log(webview);
-    webview.reload();
+  public reload = (w: Electron.WebviewTag | null) => {
+    console.log(w);
+    w && w.reload();
   };
 
-  public openDevTools = () => {
-    const container = ReactDOM.findDOMNode(this.element) as Element;
-    const webview = container.querySelector('webview') as Electron.WebviewTag;
-    if (webview.isDevToolsOpened()) webview.closeDevTools();
-    else webview.openDevTools();
+  public openDevTools = (w: Electron.WebviewTag | null) => {
+    if (!w) return;
+    if (w.isDevToolsOpened()) w.closeDevTools();
+    else w.openDevTools();
   };
 
   public render(): JSX.Element {
@@ -163,28 +142,41 @@ export class WebView extends React.PureComponent<IWebViewProps> {
             flexDirection: 'row',
           }}
         >
-          <button style={{ flexGrow: 1 }} onClick={() => this.goBack()}>
+          <button
+            style={{ flexGrow: 1 }}
+            onClick={() => this.goBack(this.webviewRef.current)}
+          >
             Back
           </button>
-          <button style={{ flexGrow: 1 }} onClick={() => this.goForward()}>
+          <button
+            style={{ flexGrow: 1 }}
+            onClick={() => this.goForward(this.webviewRef.current)}
+          >
             Forward
           </button>
-          <button style={{ flexGrow: 1 }} onClick={() => this.reload()}>
+          <button
+            style={{ flexGrow: 1 }}
+            onClick={() => this.reload(this.webviewRef.current)}
+          >
             Reload
           </button>
-          <button style={{ flexGrow: 1 }} onClick={() => this.openDevTools()}>
+          <button
+            style={{ flexGrow: 1 }}
+            onClick={() => this.openDevTools(this.webviewRef.current)}
+          >
             Toggle Devtools
           </button>
         </div>
-        <div
+        <webview
+          ref={this.webviewRef}
+          className={this.props.className}
           style={{
             background: '#fff',
-            flexGrow: 1,
             display: 'inline-flex',
+            width: '100%',
+            height: '100%',
           }}
-          ref={w => {
-            if (w) this.element = w;
-          }}
+          src={this.props.src}
         />
       </div>
     );
